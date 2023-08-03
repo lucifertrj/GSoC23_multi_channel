@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Multi-channel Support</title>
+    <link rel="icon" type="image/jpg" href="{{ url_for('static', filename='img/icon.jpeg') }}">
+    <style>
+        #openseadragon-viewer {
+            width: 100%;
+            height: 750px;
+        }
+    </style>
+    <script src="{{ url_for('static', filename='openseadragon/openseadragon.min.js') }}"></script>
+</head>
+<body>
+    <div id="openseadragon-viewer"></div>
+    <script type="text/javascript">
+        var dziPath = "{{ dzi_path }}";
+        const viewer = OpenSeadragon({
+            id: "openseadragon-viewer",
+            prefixUrl: "{{ url_for('static', filename='openseadragon/images/') }}",
+            tileSources:"../static/"+dziPath,
+            tiles: [{
+                "scaleFactors": [ 1, 2, 4, 8, 16, 32 ],
+                "width": 100
+              }]
+        });
+    </script>
+</body>
+</html>

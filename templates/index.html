@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Multi-channel Support</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/icon.jpeg') }}">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .form-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .form-container input[type="file"] {
+            display: none;
+        }
+
+        .form-container label {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: #fff;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .form-container label:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Upload Image</h2>
+        <div class="form-container">
+            <form method="POST" action="/" enctype="multipart/form-data">
+                <label for="image-upload">Choose an image</label>
+                <input id="image-upload" type="file" name="image" accept="image/*">
+                <br><br>
+                <input type="submit" value="Upload">
+            </form>
+        </div>
+    </div>
+</body>
+</html>
