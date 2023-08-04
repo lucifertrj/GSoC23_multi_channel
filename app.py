@@ -1,4 +1,4 @@
-from flask import Flask, redirect,request, render_template, url_for, Response
+from flask import Flask, redirect,request, render_template, url_for, send_file, session
 import os
 import scipy.io as sio
 from PIL import Image
@@ -9,6 +9,7 @@ import pyvips
 from uuid import uuid4
 
 app = Flask(__name__)
+app.secret_key = os.urandom(24)
 
 def base64_encode(value):
     return base64.b64encode(value).decode('utf-8')
@@ -65,12 +66,21 @@ def view_image(filename):
     output_directory = f"static/{uid}"
     input_image.dzsave(output_directory)
     path = f"{uid}.dzi"
+    session['output_directory'] = output_directory
     return render_template('viewer.html', dzi_path=path)
 
+@app.route('/gettile/<int:level>/<int:col>/<int:row>')
+def get_tile(level, col, row):
+    dzi_path = session.get('output_directory')
+    print(dzi_path)
+    tile_path = f"{dzi_path}_files/{level}/{col}_{row}.jpeg"
+    print(tile_path)
+    try:
+        return send_file(tile_path, mimetype='image/jpeg')
+    except FileNotFoundError:
+        placeholder_image_path = "path_to_placeholder_image.jpg"
+        return send_file(placeholder_image_path, mimetype='image/jpeg')
 
-@app.route('/gettile')
-def get_tile(filename, level, col, row):
-    pass
 
 if __name__ == '__main__':
     app.run(debug=True)
