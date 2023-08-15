@@ -40,14 +40,19 @@ def upload_image():
             return "No image uploaded", 400
         
         image_file = request.files['image']
-        image_file = image_file.filename
         
-        if image_file.split('.')[-1] not in ALLOWED_EXTENSIONS:
+        if image_file.filename.split('.')[-1] not in ALLOWED_EXTENSIONS:
             flash("Invalid Image file")
         else:
             image_path = os.path.join(app.config['TEMP_FOLDER'], image_file.filename)
             image_file.save(image_path)
-            return redirect(url_for('view_image', filename=image_file.filename))
+            
+            img = Image.open(image_path)
+            
+            num_channels = len(img.getbands())
+            channel_labels = [chr(65 + i) for i in range(num_channels)] 
+            
+            return render_template('channels.html', filename=image_file.filename, channels=channel_labels)
 
     return render_template('index.html')
 

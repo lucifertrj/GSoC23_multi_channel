@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Multi-channel Support</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/icon.jpeg') }}">
+</head>
+<body>
+    <h1>Choose Channel Colors</h1>
+    <form action="{{ url_for('view_image', filename=filename) }}" method="post">
+        <ul>
+            {% for channel in channels %}
+                <li>
+                    <label for="{{ channel }}">{{ channel }}</label>
+                    <select id="{{ channel }}" name="{{ channel }}">
+                        <option value="R">Red</option>
+                        <option value="G">Green</option>
+                        <option value="B">Blue</option>
+                    </select>
+                </li>
+            {% endfor %}
+        </ul>
+        <input type="submit" value="View Image">
+    </form>
+</body>
+</html>
