@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Multi-channel Support</title>
+    <link rel="icon" type="image/jpg" href="{{ url_for('static', filename='img/icon.jpeg') }}">
+    </head>
+<body>
+    <div id="message">
+        <button class="btn" type="button" onclick="window.location.href='{{ url_for('upload_image') }}';">Try Again</button>
+    </div>
+    <script type="text/javascript">
+        alert("Invalid image file. Try again");
+    </script>
+</body>
+</html>
