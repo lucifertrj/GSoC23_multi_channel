@@ -1,12 +1,11 @@
 """
-[Done]- A new route to test different channel in the image based on the user request[Red,Green,Blue]
-- Two things left to do: 
-[Done]  - Dockerize this application [DockerFile]
-[Pending]  - test with caMicroscope - Resources:https://github.com/camicroscope/caMicroscope/blob/c14569fe2d2fe18b51f0ce673ffed699b66477f6/core/CaMic.js#L204
+https://github.com/camicroscope/Distro/blob/0161da5ab6efeda81a9f8e634af1ec7e31b8cca5/config/routes.json#L39
+https://github.com/camicroscope/Caracal/blob/master/handlers/iipHandler.js
+https://github.com/camicroscope/Distro/blob/0161da5ab6efeda81a9f8e634af1ec7e31b8cca5/config/routes.json#L25
 """
 
 from flask import Flask, redirect,request, render_template, url_for
-from flask import Response,send_file, session
+from flask import Response,send_file, session, flash
 import os
 import scipy.io as sio
 from PIL import Image
@@ -32,7 +31,7 @@ if not os.path.exists(uploading_folder):
 app.config['TEMP_FOLDER'] = uploading_folder
 app.config['SECRET_KEY'] = os.urandom(24)
 
-ALLOWED_EXTENSIONS = set(['tif', 'tiff','png', 'jpg','mat'])
+ALLOWED_EXTENSIONS = set(['tif', 'tiff','png','jpeg','jpg','mat'])
 
 @app.route('/', methods=['GET', 'POST'])
 def upload_image():
@@ -41,11 +40,15 @@ def upload_image():
             return "No image uploaded", 400
         
         image_file = request.files['image']
-        image_path = os.path.join(app.config['TEMP_FOLDER'], image_file.filename)
+        image_file = image_file.filename
         
-        image_file.save(image_path)
-        return redirect(url_for('view_image', filename=image_file.filename))
-    
+        if image_file.split('.')[-1] not in ALLOWED_EXTENSIONS:
+            flash("Invalid Image file")
+        else:
+            image_path = os.path.join(app.config['TEMP_FOLDER'], image_file.filename)
+            image_file.save(image_path)
+            return redirect(url_for('view_image', filename=image_file.filename))
+
     return render_template('index.html')
 
 @app.route('/api/rgb/<filename>', methods=['GET'])
@@ -63,7 +66,7 @@ def convert_channel_api(image_path):
         
     converted_folder = 'converted'
     os.makedirs(converted_folder, exist_ok=True)
-    dir,img_file = image_path.split("/")
+    _,img_file = image_path.split("/")
     converted_image_path = os.path.join(converted_folder, img_file)
     imageio.imwrite(converted_image_path, final_image, format='TIFF')
     
@@ -122,3 +125,9 @@ def choose_color(filename,channel):
     
 if __name__ == '__main__':
     app.run(debug=True)
+    
+"""
+input has [A,B,C,D,E,F], and output is [R,G,B]; can we let a user choose A->R, F->G, C->B and display that as output?
+to avoid duplicate B
+input has [1,2,3,4,5,6], and output is [R,G,B]; can we let a user choose 1->R, 6->G, 3->B and display that as output?
+"""
