@@ -5,21 +5,23 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/icon.jpeg') }}">
 </head>
 <body>
-    <h1>Choose Channel Colors</h1>
-    <form action="{{ url_for('view_image', filename=filename) }}" method="post">
-        <ul>
-            {% for channel in channels %}
-                <li>
-                    <label for="{{ channel }}">{{ channel }}</label>
-                    <select id="{{ channel }}" name="{{ channel }}">
-                        <option value="R">Red</option>
-                        <option value="G">Green</option>
-                        <option value="B">Blue</option>
-                    </select>
-                </li>
-            {% endfor %}
-        </ul>
-        <input type="submit" value="View Image">
+    <h1>Choose RGB Channels</h1>
+    <form method="POST" action="/process_channels">
+        <input type="hidden" name="filename" value="{{ filename }}">
+        {% for channel in channels %}
+            <p>{{ channel }}</p>
+            <label>
+                <input type="radio" name="channel_{{ loop.index0 }}" value="0"> Red
+            </label>
+            <label>
+                <input type="radio" name="channel_{{ loop.index0 }}" value="1"> Green
+            </label>
+            <label>
+                <input type="radio" name="channel_{{ loop.index0 }}" value="2"> Blue
+            </label>
+            <br>
+        {% endfor %}
+        <button type="submit">View Image</button>
     </form>
 </body>
 </html>

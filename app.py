@@ -46,18 +46,30 @@ def upload_image():
         else:
             image_path = os.path.join(app.config['TEMP_FOLDER'], image_file.filename)
             image_file.save(image_path)
-            
-            img = Image.open(image_path)
-            
-            num_channels = len(img.getbands())
-            channel_labels = [chr(65 + i) for i in range(num_channels)] 
+            if image_path.endswith(".mat"):
+                band = sio.loadmat(image_path)
+                arr = band['hsi']
+                num_channels = arr.shape[2]
+            else:
+                img = Image.open(image_path)
+                num_channels = len(img.getbands())
+                
+            channel_labels = [f"Channel-{i}:" for i in range(num_channels)]  #send total channels as alphabets
             
             return render_template('channels.html', filename=image_file.filename, channels=channel_labels)
 
     return render_template('index.html')
 
+@app.route('/process_channels', methods=['POST'])
+def process_channels():
+    filename = request.form['filename']
+    num_channels = int(len(request.form) - 1)  # Subtract 1 for the filename field
+    channel_order = [int(request.form[f'channel_{i}']) for i in range(num_channels)]
+    
+    return redirect(url_for('view_image', filename=filename, channel_order=channel_order))
+    
 @app.route('/api/rgb/<filename>', methods=['GET'])
-def convert_channel_api(image_path):
+def convert_channel_api(image_path,order):
     image_path = image_path
     #print(image_path)
     #print(type(image_path))
@@ -84,7 +96,14 @@ def convert_channel_api(image_path):
 def view_image(filename):
     uid = uuid4().hex
     uploaded_path = os.path.join("uploaded",filename)
-    converted_img = convert_channel_api(uploaded_path)
+    channel_order = request.args.getlist('channel_order', type=int)
+    print("*"*40)
+    print("="*40)
+    print(channel_order)
+    print("="*40)
+    print("*"*40)
+    converted_img = convert_channel_api(uploaded_path,channel_order)
+    
     input_image = pyvips.Image.new_from_buffer(converted_img,"")
     output_directory = f"static/{uid}"
     input_image.dzsave(output_directory)
@@ -101,8 +120,7 @@ def get_tile(level, col, row):
     try:
         return send_file(tile_path, mimetype='image/jpeg')
     except FileNotFoundError:
-        placeholder_image_path = "path_to_placeholder_image.jpg"
-        return send_file(placeholder_image_path, mimetype='image/jpeg')
+        return "Invalid Image",404
 
 def user_channel_choice(channel):
     img_io = BytesIO()
@@ -131,8 +149,3 @@ def choose_color(filename,channel):
 if __name__ == '__main__':
     app.run(debug=True)
     
-"""
-input has [A,B,C,D,E,F], and output is [R,G,B]; can we let a user choose A->R, F->G, C->B and display that as output?
-to avoid duplicate B
-input has [1,2,3,4,5,6], and output is [R,G,B]; can we let a user choose 1->R, 6->G, 3->B and display that as output?
-"""
