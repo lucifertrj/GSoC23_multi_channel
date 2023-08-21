@@ -2,15 +2,22 @@
 https://github.com/camicroscope/Distro/blob/0161da5ab6efeda81a9f8e634af1ec7e31b8cca5/config/routes.json#L39
 https://github.com/camicroscope/Caracal/blob/master/handlers/iipHandler.js
 https://github.com/camicroscope/Distro/blob/0161da5ab6efeda81a9f8e634af1ec7e31b8cca5/config/routes.json#L25
+
+Upload image from the directory rather than request['files]
+
+(this line) 
+
+https://github.com/camicroscope/Distro/blob/b3f325f11bbd75f6111558012e0cb974e2758cbd/develop.yml#L11C15-L11C15
+
 """
 
-from flask import Flask, redirect,request, render_template, url_for
-from flask import Response,send_file, session, flash
+from flask import Flask, redirect,request, render_template, url_for, session, flash
+#from flask import Response,send_file, 
 import os
 import scipy.io as sio
 from PIL import Image
 from io import BytesIO
-import imageio
+#import imageio
 import model,HS2RGB
 import base64
 import pyvips
@@ -33,6 +40,11 @@ app.config['SECRET_KEY'] = os.urandom(24)
 
 ALLOWED_EXTENSIONS = set(['tif', 'tiff','png','jpeg','jpg','mat'])
 
+@app.route('/')
+def base():
+    return "hello caMicroscope"
+
+"""
 @app.route('/', methods=['GET', 'POST'])
 def upload_image():
     if request.method == 'POST':
@@ -46,19 +58,36 @@ def upload_image():
         else:
             image_path = os.path.join(app.config['TEMP_FOLDER'], image_file.filename)
             image_file.save(image_path)
+            
             if image_path.endswith(".mat"):
                 band = sio.loadmat(image_path)
                 arr = band['hsi']
                 num_channels = arr.shape[2]
             else:
-                img = Image.open(image_path)
-                num_channels = len(img.getbands())
-                
+                img_tif = Image.open(image_path)
+                num_channels = len(img_tif.getbands())+2
             channel_labels = [f"Channel-{i}:" for i in range(num_channels)]  #send total channels as alphabets
-            
             return render_template('channels.html', filename=image_file.filename, channels=channel_labels)
 
     return render_template('index.html')
+"""
+
+@app.route("/<filename>")
+def main(filename):
+    image_file = f"./{filename}"
+        
+    if image_file.split('.')[-1] not in ALLOWED_EXTENSIONS:
+        flash("Invalid Image file")
+    else:
+        if image_file.endswith(".mat"):
+            band = sio.loadmat(image_file)
+            arr = band['hsi']
+            num_channels = arr.shape[2]
+        else:
+            img_tif = Image.open(image_file)
+            num_channels = len(img_tif.getbands())+2
+        channel_labels = [f"Channel-{i}:" for i in range(num_channels)]  #send total channels as alphabets
+        return render_template('channels.html', filename=image_file, channels=channel_labels)
 
 @app.route('/process_channels', methods=['POST'])
 def process_channels():
@@ -79,13 +108,15 @@ def convert_channel_api(image_path,order):
         final_image = HS2RGB.intoRGB(arr)
     else:
         image = Image.open(image_path)
-        final_image = model.RGB(image)
+        final_image = model.RGB(image,order)
         
+    """
     converted_folder = 'converted'
     os.makedirs(converted_folder, exist_ok=True)
     _,img_file = image_path.split("/")
     converted_image_path = os.path.join(converted_folder, img_file)
     imageio.imwrite(converted_image_path, final_image, format='TIFF')
+    """
     
     image_data = BytesIO()
     final_image.save(image_data, format='JPEG')
@@ -95,15 +126,13 @@ def convert_channel_api(image_path,order):
 @app.route('/viewer/<filename>', methods=['GET'])
 def view_image(filename):
     uid = uuid4().hex
-    uploaded_path = os.path.join("uploaded",filename)
+    uploaded_path = filename
     channel_order = request.args.getlist('channel_order', type=int)
-    print("*"*40)
-    print("="*40)
-    print(channel_order)
-    print("="*40)
-    print("*"*40)
-    converted_img = convert_channel_api(uploaded_path,channel_order)
     
+    #print(channel_order)
+   
+    converted_img = convert_channel_api(uploaded_path,channel_order)
+
     input_image = pyvips.Image.new_from_buffer(converted_img,"")
     output_directory = f"static/{uid}"
     input_image.dzsave(output_directory)
@@ -111,41 +140,5 @@ def view_image(filename):
     session['output_directory'] = output_directory
     return render_template('viewer.html', dzi_path=path)
 
-@app.route('/gettile/<int:level>/<int:col>/<int:row>')
-def get_tile(level, col, row):
-    dzi_path = session.get('output_directory')
-    #print(dzi_path)
-    tile_path = f"{dzi_path}_files/{level}/{col}_{row}.jpeg"
-    #print(tile_path)
-    try:
-        return send_file(tile_path, mimetype='image/jpeg')
-    except FileNotFoundError:
-        return "Invalid Image",404
-
-def user_channel_choice(channel):
-    img_io = BytesIO()
-    channel.save(img_io, format='JPEG')
-    img_io.seek(0)
-    return img_io
-
-@app.route('/color/<filename>/<channel>')
-def choose_color(filename,channel):
-    image = Image.open(f"converted/{filename}")
-    
-    if channel == 'red':
-        channel_image = image.split()[0]
-    elif channel == 'green':
-        channel_image = image.split()[1]
-    elif channel == 'blue':
-        channel_image = image.split()[2]
-    else:
-        return "Invalid channel"
-
-    img_io = BytesIO()
-    channel_image.save(img_io, format='JPEG')
-    img_io.seek(0)
-    return Response(img_io, mimetype='image/jpeg')
-    
 if __name__ == '__main__':
     app.run(debug=True)
-    
