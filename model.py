@@ -22,17 +22,22 @@ def assign_blue_channel(original_image):
     blue_ch[:, :, 2] = third_array
     return blue_ch
 
-def RGB(image):
-    image.seek(0)
-    red_ch = assign_red_channel(image)
-    image.seek(1)
-    green_ch = assign_green_channel(image)
-    image.seek(2)
-    blue_ch = assign_blue_channel(image)
-    final_image = np.empty((1020, 954, 3), dtype=np.uint8)
-    final_image[:, :, 0] = red_ch[:, :, 0]
-    final_image[:, :, 1] = green_ch[:, :, 1]
-    final_image[:, :, 2] = blue_ch[:, :, 2]
+def RGB(image,order):
+    ch = []
+    for i in range(len(order)):
+        image.seek(i)
+        
+        if order[i] == 0:
+            ch.append(assign_red_channel(image))
+        if order[i] == 1:
+            ch.append(assign_green_channel(image))
+        if order[i] == 2:
+            ch.append(assign_blue_channel(image))
     
+    final_image = np.empty((1020, 954, 3), dtype=np.uint8)
+    final_image[:, :, 0] = ch[0][:, :, 0]
+    final_image[:, :, 1] = ch[1][:, :, 1]
+    final_image[:, :, 2] = ch[2][:, :, 2]
+
     rgbImg = Image.fromarray(final_image)
     return rgbImg
