@@ -131,7 +131,7 @@ def convert_channel_api(image_path,order):
     image_data.seek(0)
     return image_data.getvalue()
 
-@app.route('/multichannel/viewer/<filename>', methods=['GET'])
+@app.route('/viewer/<filename>', methods=['GET'])
 def view_image(filename):
     uid = uuid4().hex
     uploaded_path = filename
