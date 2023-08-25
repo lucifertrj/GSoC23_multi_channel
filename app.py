@@ -103,7 +103,7 @@ def process_channels():
     num_channels = int(len(request.form) - 1)  # Subtract 1 for the filename field
     channel_order = [int(request.form[f'channel_{i}']) for i in range(num_channels)]
     
-    return redirect(url_for('multichannel/view_image', filename=filename, channel_order=channel_order))
+    return redirect(url_for('view_image', filename=filename, channel_order=channel_order))
     
 @app.route('/api/rgb/<filename>', methods=['GET'])
 def convert_channel_api(image_path,order):
@@ -131,7 +131,7 @@ def convert_channel_api(image_path,order):
     image_data.seek(0)
     return image_data.getvalue()
 
-@app.route('/viewer/<filename>', methods=['GET'])
+@app.route('/multichannel/viewer/<filename>', methods=['GET'])
 def view_image(filename):
     uid = uuid4().hex
     uploaded_path = filename
