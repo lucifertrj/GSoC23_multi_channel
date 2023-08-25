@@ -9,6 +9,14 @@ Upload image from the directory rather than request['files]
 
 https://github.com/camicroscope/Distro/blob/b3f325f11bbd75f6111558012e0cb974e2758cbd/develop.yml#L11C15-L11C15
 
+Run: http://localhost:4010/multichannel/
+
+TODO:
+[Done]- Make relative paths
+- caMicroscope => apps:  (JavaScript)
+        - User channel (multi-channel)
+        - Viewer (multi-channel)
+- API returns json - Read the channel order
 """
 
 from flask import Flask, redirect,request, render_template, url_for, session, flash
@@ -65,7 +73,7 @@ def upload_image():
                 num_channels = arr.shape[2]
             else:
                 img_tif = Image.open(image_path)
-                num_channels = len(img_tif.getbands())+2
+                http://localhost:4010/multichannel/num_channels = len(img_tif.getbands())+2
             channel_labels = [f"Channel-{i}:" for i in range(num_channels)]  #send total channels as alphabets
             return render_template('channels.html', filename=image_file.filename, channels=channel_labels)
 
@@ -95,7 +103,7 @@ def process_channels():
     num_channels = int(len(request.form) - 1)  # Subtract 1 for the filename field
     channel_order = [int(request.form[f'channel_{i}']) for i in range(num_channels)]
     
-    return redirect(url_for('view_image', filename=filename, channel_order=channel_order))
+    return redirect(url_for('multichannel/view_image', filename=filename, channel_order=channel_order))
     
 @app.route('/api/rgb/<filename>', methods=['GET'])
 def convert_channel_api(image_path,order):
@@ -142,3 +150,4 @@ def view_image(filename):
 
 if __name__ == '__main__':
     app.run(debug=True)
+
