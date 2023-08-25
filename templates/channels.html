@@ -2,11 +2,11 @@
 <html>
 <head>
     <title>Multi-channel Support</title>
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/icon.jpeg') }}">
+    <link rel="icon" type="image/png" href="../static/img/icon.jpeg">
 </head>
 <body>
     <h1>Choose RGB Channels</h1>
-    <form method="POST" action="/process_channels">
+    <form method="POST" action="./process_channels">
         <input type="hidden" name="filename" value="{{ filename }}">
         {% for channel in channels %}
             <p>{{ channel }}</p>

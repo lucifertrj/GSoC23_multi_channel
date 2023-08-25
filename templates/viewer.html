@@ -2,7 +2,7 @@
 <html>
 <head>
     <title>Multi-channel Support</title>
-    <link rel="icon" type="image/jpg" href="{{ url_for('static', filename='img/icon.jpeg') }}">
+    <link rel="icon" type="image/jpg" href="../static/img/icon.jpeg">
     <style>
    	 body, html {
             margin: 0;
@@ -16,7 +16,7 @@
             height: 750px;
         }
     </style>
-    <script src="{{ url_for('static', filename='openseadragon/openseadragon.min.js') }}"></script>
+    <script src="../static/openseadragon/openseadragon.min.js"></script>
 </head>
 <body>
     <div id="openseadragon-viewer"></div>
@@ -24,7 +24,7 @@
         var dziPath = "{{ dzi_path }}";
         const viewer = OpenSeadragon({
             id: "openseadragon-viewer",
-            prefixUrl: "{{ url_for('static', filename='openseadragon/images/') }}",
+            prefixUrl: "../static/openseadragon/images/",
             tileSources:"../static/"+dziPath,
             preserveViewport: true,
             visibilityRatio: 1,
