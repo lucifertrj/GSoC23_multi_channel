@@ -12,14 +12,15 @@ https://github.com/camicroscope/Distro/blob/b3f325f11bbd75f6111558012e0cb974e275
 Run: http://localhost:4010/multichannel/
 
 TODO:
-[Done]- Make relative paths
-- caMicroscope => apps:  (JavaScript)
+[Done]- Make relative paths -  Docker => Runing
+[Done] - API returns json - Read the channel order 
+
+<PENDING>- caMicroscope => apps:  (JavaScript)
         - User channel (multi-channel)
         - Viewer (multi-channel)
-- API returns json - Read the channel order
 """
 
-from flask import Flask, redirect,request, render_template, url_for, session, flash
+from flask import Flask, redirect,request, render_template, url_for, session, flash, jsonify
 #from flask import Response,send_file, 
 import os
 import scipy.io as sio
@@ -50,7 +51,7 @@ ALLOWED_EXTENSIONS = set(['tif', 'tiff','png','jpeg','jpg','mat'])
 
 @app.route('/')
 def base():
-    return "hello caMicroscope"
+    return jsonify({"message":"hello caMicroscope"})
 
 """
 @app.route('/', methods=['GET', 'POST'])
@@ -95,6 +96,8 @@ def main(filename):
             img_tif = Image.open(image_file)
             num_channels = len(img_tif.getbands())+2
         channel_labels = [f"Channel-{i}:" for i in range(num_channels)]  #send total channels as alphabets
+        
+        #return jsonify({"filename": image_file, "channels": channel_labels})
         return render_template('channels.html', filename=image_file, channels=channel_labels)
 
 @app.route('/process_channels', methods=['POST'])
@@ -134,9 +137,12 @@ def convert_channel_api(image_path,order):
 @app.route('/viewer/<filename>', methods=['GET'])
 def view_image(filename):
     uid = uuid4().hex
-    uploaded_path = filename
-    channel_order = request.args.getlist('channel_order', type=int)
+    #uploaded_path = filename
+    #channel_order = request.args.getlist('channel_order', type=int)
     
+    data = request.json
+    uploaded_path = data['filename']
+    channel_order = [int(data[f'channel_{i}']) for i in range(len(data) - 1)]
     #print(channel_order)
    
     converted_img = convert_channel_api(uploaded_path,channel_order)
