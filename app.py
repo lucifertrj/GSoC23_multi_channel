@@ -137,12 +137,12 @@ def convert_channel_api(image_path,order):
 @app.route('/viewer/<filename>', methods=['GET'])
 def view_image(filename):
     uid = uuid4().hex
-    #uploaded_path = filename
-    #channel_order = request.args.getlist('channel_order', type=int)
+    uploaded_path = filename
+    channel_order = request.args.getlist('channel_order', type=int)
     
-    data = request.json
-    uploaded_path = data['filename']
-    channel_order = [int(data[f'channel_{i}']) for i in range(len(data) - 1)]
+    #data = request.json
+    #uploaded_path = data['filename']
+    #channel_order = [int(data[f'channel_{i}']) for i in range(len(data) - 1)]
     #print(channel_order)
    
     converted_img = convert_channel_api(uploaded_path,channel_order)
