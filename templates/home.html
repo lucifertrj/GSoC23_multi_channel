@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Multi-channel Support</title>
+        <link rel="icon" type="image/png" href="../static/img/icon.jpeg">
+    </head>
+<body>
+    <h1>Choose the image</h1>
+    <ul>
+        {% for filename in image_filenames %}
+            <li>
+                <form action="{{ url_for('image', filename=filename) }}" method="GET">
+                    <button type="submit">
+                        <img src="{{ filename }}" alt="{{ filename }}" height="100" width="100">
+                    </button>
+                </form>
+            </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

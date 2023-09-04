@@ -49,9 +49,11 @@ app.config['SECRET_KEY'] = os.urandom(24)
 
 ALLOWED_EXTENSIONS = set(['tif', 'tiff','png','jpeg','jpg','mat'])
 
+sample_image = ['44153.tif','hsi_1.mat']
+
 @app.route('/')
 def base():
-    return jsonify({"message":"hello caMicroscope"})
+    return render_template('home.html', image_filenames=sample_image) 
 
 """
 @app.route('/', methods=['GET', 'POST'])
@@ -155,5 +157,4 @@ def view_image(filename):
     return render_template('viewer.html', dzi_path=path)
 
 if __name__ == '__main__':
-    app.run(debug=True)
-
+    app.run(debug=True,port=8000)
