@@ -9,7 +9,7 @@
     <ul>
         {% for filename in image_filenames %}
             <li>
-                <form action="{{ url_for('image', filename=filename) }}" method="GET">
+                <form action="{{ url_for('main', filename=filename) }}" method="GET">
                     <button type="submit">
                         <img src="{{ filename }}" alt="{{ filename }}" height="100" width="100">
                     </button>
