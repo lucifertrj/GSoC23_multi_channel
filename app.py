@@ -83,7 +83,7 @@ def upload_image():
     return render_template('index.html')
 """
 
-@app.route("/multichannel/<filename>")
+@app.route("/multichannel/<filename>/")
 def main(filename):
     image_file = f"./{filename}"
         
@@ -102,7 +102,7 @@ def main(filename):
         #return jsonify({"filename": image_file, "channels": channel_labels})
         return render_template('channels.html', filename=image_file, channels=channel_labels)
 
-@app.route('/process_channels', methods=['POST'])
+@app.route('/multichannel/process_channels/', methods=['POST'])
 def process_channels():
     filename = request.form['filename']
     num_channels = int(len(request.form) - 1)  # Subtract 1 for the filename field
@@ -136,7 +136,7 @@ def convert_channel_api(image_path,order):
     image_data.seek(0)
     return image_data.getvalue()
 
-@app.route('/multichannel/viewer/<filename>', methods=['GET'])
+@app.route('/multichannel/viewer/<filename>/', methods=['GET'])
 def view_image(filename):
     uid = uuid4().hex
     uploaded_path = filename
