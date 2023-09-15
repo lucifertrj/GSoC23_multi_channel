@@ -80,7 +80,7 @@ def main(filename):
         #return jsonify({"filename": image_file, "channels": channel_labels})
         return render_template('channels.html', filename=image_file, channels=channel_labels)
 
-@app.route('/process_channels', methods=['POST'])
+@app.route('/process_channels/', methods=['POST'])
 def process_channels():
     filename = request.form['filename']
     num_channels = int(len(request.form) - 1)  # Subtract 1 for the filename field
