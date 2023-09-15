@@ -1,32 +1,9 @@
-"""
-https://github.com/camicroscope/Distro/blob/0161da5ab6efeda81a9f8e634af1ec7e31b8cca5/config/routes.json#L39
-https://github.com/camicroscope/Caracal/blob/master/handlers/iipHandler.js
-https://github.com/camicroscope/Distro/blob/0161da5ab6efeda81a9f8e634af1ec7e31b8cca5/config/routes.json#L25
-
-Upload image from the directory rather than request['files]
-
-(this line) 
-
-https://github.com/camicroscope/Distro/blob/b3f325f11bbd75f6111558012e0cb974e2758cbd/develop.yml#L11C15-L11C15
-
-Run: http://localhost:4010/multichannel/
-
-TODO:
-[Done]- Make relative paths -  Docker => Runing
-[Done] - API returns json - Read the channel order 
-
-<PENDING>- caMicroscope => apps:  (JavaScript)
-        - User channel (multi-channel)
-        - Viewer (multi-channel)
-"""
-
-from flask import Flask, redirect,request, render_template, url_for, session, flash, jsonify
-#from flask import Response,send_file, 
+from flask import Flask, redirect,request, render_template, url_for, session, flash, jsonify,make_response
 import os
 import scipy.io as sio
 from PIL import Image
+from flask_caching import Cache
 from io import BytesIO
-#import imageio
 import model,HS2RGB
 import base64
 import pyvips
@@ -34,6 +11,7 @@ from uuid import uuid4
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
+cache = Cache(app, config={'CACHE_TYPE': 'simple'})
 
 def base64_encode(value):
     return base64.b64encode(value).decode('utf-8')
@@ -49,7 +27,7 @@ app.config['SECRET_KEY'] = os.urandom(24)
 
 ALLOWED_EXTENSIONS = set(['tif', 'tiff','png','jpeg','jpg','mat'])
 
-sample_image = ['44153.tif','hsi_1.mat']
+sample_image = ['44153.tif','hsi_1.mat','23049.tif','10974.tif']
 
 @app.route('/')
 def base():
@@ -83,7 +61,7 @@ def upload_image():
     return render_template('index.html')
 """
 
-@app.route("multichannel/<filename>")
+@app.route("/<filename>")
 def main(filename):
     image_file = f"./{filename}"
         
@@ -136,25 +114,48 @@ def convert_channel_api(image_path,order):
     image_data.seek(0)
     return image_data.getvalue()
 
-@app.route('multichannel/viewer/<filename>', methods=['GET'])
+@app.route('/viewer/<filename>', methods=['GET'])
 def view_image(filename):
     uid = uuid4().hex
     uploaded_path = filename
     channel_order = request.args.getlist('channel_order', type=int)
     
-    #data = request.json
-    #uploaded_path = data['filename']
-    #channel_order = [int(data[f'channel_{i}']) for i in range(len(data) - 1)]
-    #print(channel_order)
-   
-    converted_img = convert_channel_api(uploaded_path,channel_order)
+    cache_key = f'{uploaded_path}_{channel_order}'
+    converted_img = cache.get(cache_key)
 
-    input_image = pyvips.Image.new_from_buffer(converted_img,"")
+    if converted_img is None:
+        converted_img = convert_channel_api(uploaded_path, channel_order)
+        cache.set(cache_key, converted_img)
+
+    input_image = pyvips.Image.new_from_buffer(converted_img, "")
+    
     output_directory = f"static/{uid}"
     input_image.dzsave(output_directory)
+    
     path = f"{uid}.dzi"
     session['output_directory'] = output_directory
     return render_template('viewer.html', dzi_path=path)
+   
+    """
+    converted_img = convert_channel_api(uploaded_path,channel_order)
+    input_image = pyvips.Image.new_from_buffer(converted_img,"")
+    
+    output_directory = f"static/{uid}"
+    input_image.dzsave(output_directory)
+    
+    path = f"{uid}.dzi"
+    session['output_directory'] = output_directory
+    return render_template('viewer.html', dzi_path=path)
+
+    
+    dzi_data = input_image.dzsave_buffer(basename=".dzi")
+    print(dzi_data)
+    response = make_response(dzi_data)
+    response.headers['Content-Type'] = 'application/xml'
+    response.headers['Content-Dispo'] = f'attachment; filename={uid}.dzi'
+
+    return response
+    """
 
 if __name__ == '__main__':
     app.run(debug=True,port=8000)
