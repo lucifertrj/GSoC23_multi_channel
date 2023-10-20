@@ -1,19 +1,30 @@
-from sklearn.decomposition import PCA
-
 import numpy as np
 from PIL import Image
 
 import warnings
 warnings.filterwarnings('ignore')
 
-def intoRGB(image):
-    reshaped_image = image.reshape(image.shape[0]*image.shape[1], image.shape[2])
-    norm = (reshaped_image - np.mean(reshaped_image, axis=0)) / np.std(reshaped_image, axis=0)
-    pca = PCA(n_components=3)
-    pca.fit(norm)
-    rgb = pca.components_
-    rgb_arr = np.dot(norm, rgb.T)
-    rgb_arr = rgb_arr.reshape(image.shape[0], image.shape[1], 3)
-    arr = rgb_arr.astype(np.uint8)
+def hsi_to_rgb(hsi_image, band_selections):
+    rgb_image = np.zeros((hsi_image.shape[0], hsi_image.shape[1], 3), dtype=np.float32)
+
+    for selection in band_selections:
+        band_index = selection['band']
+        color = selection['color']
+        
+        if color == 'R':
+            rgb_image[:,:,0] += hsi_image[:,:,band_index]
+        elif color == 'G':
+            rgb_image[:,:,1] += hsi_image[:,:,band_index]
+        elif color == 'B':
+            rgb_image[:,:,2] += hsi_image[:,:,band_index]
+    
+    # Normalize each channel to be in the range [0, 255]
+    for i in range(3):
+        channel = rgb_image[:,:,i]
+        channel = (channel - np.min(channel)) / (np.max(channel) - np.min(channel)) * 255
+        rgb_image[:,:,i] = channel
+    
+    arr = rgb_image.astype(np.uint8)
     rgb_image = Image.fromarray(arr)
+    
     return rgb_image
