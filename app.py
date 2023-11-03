@@ -1,161 +1,84 @@
-from flask import Flask, redirect,request, render_template, url_for, session, flash, jsonify,make_response
-import os
-import scipy.io as sio
+from flask import Flask, render_template, request, redirect, url_for, send_file
 from PIL import Image
-from flask_caching import Cache
+import numpy as np
+from scipy.io import loadmat
 from io import BytesIO
-import model,HS2RGB
-import base64
+from flask_caching import Cache
 import pyvips
-from uuid import uuid4
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24)
-cache = Cache(app, config={'CACHE_TYPE': 'simple'})
 
-def base64_encode(value):
-    return base64.b64encode(value).decode('utf-8')
+cache = Cache(app, config={'CACHE_TYPE': 'SimpleCache'}) 
 
-app.jinja_env.filters['b64encode'] = base64_encode
+def load_hsi_from_mat(file_name):
+    mat_data = loadmat(f'static/mat_files/{file_name}.mat')
+    return mat_data['hsi']
 
-uploading_folder = "uploaded"
-if not os.path.exists(uploading_folder):
-    os.makedirs(uploading_folder)
+def hsi_to_rgb(hsi_image, band_selections):
+    rgb_image = np.zeros((hsi_image.shape[0], hsi_image.shape[1], 3), dtype=np.float32)
 
-app.config['TEMP_FOLDER'] = uploading_folder
-app.config['SECRET_KEY'] = os.urandom(24)
+    for selection in band_selections:
+        band_index = selection['band']
+        color = selection['color']
+        
+        if color == 'R':
+            rgb_image[:,:,0] += hsi_image[:,:,band_index]
+        elif color == 'G':
+            rgb_image[:,:,1] += hsi_image[:,:,band_index]
+        elif color == 'B':
+            rgb_image[:,:,2] += hsi_image[:,:,band_index]
+    
+    for i in range(3):
+        channel = rgb_image[:,:,i]
+        channel = (channel - np.min(channel)) / (np.max(channel) - np.min(channel)) * 255
+        rgb_image[:,:,i] = channel
 
-ALLOWED_EXTENSIONS = set(['tif', 'tiff','png','jpeg','jpg','mat'])
-
-sample_image = ['44153.tif','hsi_1.mat','23049.tif','10974.tif']
+    return rgb_image.astype(np.uint8)
 
 @app.route('/')
-def base():
-    return render_template('home.html', image_filenames=sample_image) 
+def index():
+    sample_files = ['hsi1', 'hsi2', 'hsi3', 'hsi4']
+    return render_template('index.html', sample_files=sample_files)
 
-"""
-@app.route('/', methods=['GET', 'POST'])
-def upload_image():
+rgb_images = {}
+
+@app.route('/select_bands/<file_name>', methods=['GET', 'POST'])
+def select_bands(file_name):
+    hsi_image = load_hsi_from_mat(file_name)
+    num_bands = hsi_image.shape[2]
+
     if request.method == 'POST':
-        if 'image' not in request.files:
-            return "No image uploaded", 400
+        band_selections = []
+        for i in range(num_bands):
+            color_choice = request.form.get(f'band_{i}', None)
+            if color_choice:
+                band_selections.append({'band': i, 'color': color_choice})
+        rgb_image = hsi_to_rgb(hsi_image, band_selections)
         
-        image_file = request.files['image']
+        rgb_images[file_name] = rgb_image
         
-        if image_file.filename.split('.')[-1] not in ALLOWED_EXTENSIONS:
-            flash("Invalid Image file")
-        else:
-            image_path = os.path.join(app.config['TEMP_FOLDER'], image_file.filename)
-            image_file.save(image_path)
-            
-            if image_path.endswith(".mat"):
-                band = sio.loadmat(image_path)
-                arr = band['hsi']
-                num_channels = arr.shape[2]
-            else:
-                img_tif = Image.open(image_path)
-                http://localhost:4010/multichannel/num_channels = len(img_tif.getbands())+2
-            channel_labels = [f"Channel-{i}:" for i in range(num_channels)]  #send total channels as alphabets
-            return render_template('channels.html', filename=image_file.filename, channels=channel_labels)
+        return redirect(url_for('view_image', file_name=file_name))
+    return render_template('select_bands.html', file_name=file_name, num_bands=num_bands)
 
-    return render_template('index.html')
-"""
+@app.route('/view_image/<file_name>', methods=['GET'])
+def view_image(file_name):
+    if file_name not in rgb_images:
+        return "Image not found", 404
 
-@app.route("/<filename>")
-def main(filename):
-    image_file = f"./{filename}"
-        
-    if image_file.split('.')[-1] not in ALLOWED_EXTENSIONS:
-        flash("Invalid Image file")
-    else:
-        if image_file.endswith(".mat"):
-            band = sio.loadmat(image_file)
-            arr = band['hsi']
-            num_channels = arr.shape[2]
-        else:
-            img_tif = Image.open(image_file)
-            num_channels = len(img_tif.getbands())+2
-        channel_labels = [f"Channel-{i}:" for i in range(num_channels)]  #send total channels as alphabets
-        
-        #return jsonify({"filename": image_file, "channels": channel_labels})
-        return render_template('channels.html', filename=image_file, channels=channel_labels)
+    img = Image.fromarray(rgb_images[file_name])
+    vips_image = pyvips.Image.new_from_array(np.array(img), 1.0)
 
-@app.route('/process_channels/', methods=['POST'])
-def process_channels():
-    filename = request.form['filename']
-    num_channels = int(len(request.form) - 1)  # Subtract 1 for the filename field
-    channel_order = [int(request.form[f'channel_{i}']) for i in range(num_channels)]
-    
-    return redirect(url_for('view_image', filename=filename, channel_order=channel_order))
-    
-@app.route('/api/rgb/<filename>', methods=['GET'])
-def convert_channel_api(image_path,order):
-    image_path = image_path
-    #print(image_path)
-    #print(type(image_path))
-    if image_path.endswith(".mat"):
-        band = sio.loadmat(image_path)
-        arr = band['hsi']
-        final_image = HS2RGB.intoRGB(arr)
-    else:
-        image = Image.open(image_path)
-        final_image = model.RGB(image,order)
-        
+    output_directory = f"static/{file_name}"
     """
-    converted_folder = 'converted'
-    os.makedirs(converted_folder, exist_ok=True)
-    _,img_file = image_path.split("/")
-    converted_image_path = os.path.join(converted_folder, img_file)
-    imageio.imwrite(converted_image_path, final_image, format='TIFF')
+    vips_image.dzsave(output_directory)
+    
+    dzi_path = f"{output_directory}.dzi"
+    print(dzi_path)
     """
-    
-    image_data = BytesIO()
-    final_image.save(image_data, format='JPEG')
-    image_data.seek(0)
-    return image_data.getvalue()
+    dzi_path = None
+    print(dir())
+    return render_template('view.html', dzi_path=dzi_path)
 
-@app.route('/viewer/<filename>', methods=['GET'])
-def view_image(filename):
-    uid = uuid4().hex
-    uploaded_path = filename
-    channel_order = request.args.getlist('channel_order', type=int)
-    
-    cache_key = f'{uploaded_path}_{channel_order}'
-    converted_img = cache.get(cache_key)
-
-    if converted_img is None:
-        converted_img = convert_channel_api(uploaded_path, channel_order)
-        cache.set(cache_key, converted_img)
-
-    input_image = pyvips.Image.new_from_buffer(converted_img, "")
-    
-    output_directory = f"static/{uid}"
-    input_image.dzsave(output_directory)
-    
-    path = f"{uid}.dzi"
-    session['output_directory'] = output_directory
-    return render_template('viewer.html', dzi_path=path)
-   
-    """
-    converted_img = convert_channel_api(uploaded_path,channel_order)
-    input_image = pyvips.Image.new_from_buffer(converted_img,"")
-    
-    output_directory = f"static/{uid}"
-    input_image.dzsave(output_directory)
-    
-    path = f"{uid}.dzi"
-    session['output_directory'] = output_directory
-    return render_template('viewer.html', dzi_path=path)
-
-    
-    dzi_data = input_image.dzsave_buffer(basename=".dzi")
-    print(dzi_data)
-    response = make_response(dzi_data)
-    response.headers['Content-Type'] = 'application/xml'
-    response.headers['Content-Dispo'] = f'attachment; filename={uid}.dzi'
-
-    return response
-    """
 
 if __name__ == '__main__':
-    app.run(debug=True,port=8000)
+    app.run(debug=True)
